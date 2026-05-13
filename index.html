@@ -300,6 +300,8 @@ html,body{height:100%;background:var(--bg);color:var(--wh);font-family:var(--fb)
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .pulse{animation:pulse 2s infinite}
 </style>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="shell" id="app"></div>
@@ -315,6 +317,11 @@ const I={
 };
 
 // ── STATE ──────────────────────────────────────────────────────────────
+
+// ── SUPABASE ──────────────────────────────────────────────
+const _sb = supabase.createClient('https://zubifpgtrnjfufhnyhyd.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzZxbhBhmFzZSIsInJlZiI6Inp1YmlmcGd0cm5qZnVmaG55aHkifQ.YjP1lY');
+
+// ── STATE ──────────────────────────────────────────────────
 let S={
   logged:false,tab:'home',detail:null,modal:null,filter:'todos',
   plano:'turbo', // starter | pro | turbo
@@ -415,7 +422,24 @@ function bLogin(){
   </div>`;
 }
 
-function doLogin(){S.logged=true;r();}
+async function doLogin(){
+  const emailEl = document.querySelector('.lfi[type="email"]');
+  const passEl  = document.querySelector('.lfi[type="password"]');
+  const email   = emailEl ? emailEl.value.trim() : '';
+  const pass    = passEl  ? passEl.value.trim()  : '';
+  if(!email || !pass){ alert('Preencha e-mail e senha!'); return; }
+  document.querySelector('.lbtn') && (document.querySelector('.lbtn').textContent = 'Entrando...');
+  const { data, error } = await _sb.auth.signInWithPassword({ email, password: pass });
+  if(error){
+    alert('Erro ao entrar: ' + error.message);
+    document.querySelector('.lbtn') && (document.querySelector('.lbtn').textContent = 'Entrar no Graxo →');
+    return;
+  }
+  S.user = data.user;
+  S.logged = true;
+  await loadAll();
+  r();
+}
 
 // ── NAV ──────────────────────────────────────────────────────────────
 function bNav(){
@@ -961,13 +985,13 @@ function bDOS(id){
         <canvas class="sig-canvas" id="sig-canvas-${o.id}" width="380" height="120"></canvas>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
           <button class="btn btn-s btn-sm" onclick="clearSig(${o.id})">Limpar</button>
-          <button class="btn btn-g btn-sm" onclick="saveSig(${o.id})">✓ Confirmar assinatura</button>
+          <button class="btn btn-g btn-sm" onclick="saveSigDB(${o.id})">✓ Confirmar assinatura</button>
         </div>`}
       </div>`:`<div class="pw-lock" style="padding:16px"><div class="pw-icon">🔒</div><div class="pw-title">Check-in fotográfico + assinatura — Plano Pro</div><button class="btn btn-go btn-sm" style="width:auto;margin-top:6px" onclick="S.tab='planos';r()">Fazer upgrade →</button></div>`}
 
       ${can('baixa_auto')&&o.status==='em_andamento'?`<button class="btn btn-g" onclick="concluirOS(${o.id})" style="margin-top:12px;margin-bottom:8px">✅ Concluir OS + baixar estoque</button>`:''}
       ${!can('baixa_auto')&&o.status==='em_andamento'?`<button class="btn btn-g" onclick="concluirOSSemBaixa(${o.id})" style="margin-top:12px;margin-bottom:8px">✅ Concluir OS</button>`:''}
-      <div style="padding-bottom:18px"><button class="btn btn-d btn-sm" onclick="delOS(${o.id})">Excluir OS</button></div>
+      <div style="padding-bottom:18px"><button class="btn btn-d btn-sm" onclick="delOSDB(${o.id})">Excluir OS</button></div>
     </div>
   </div>${bNav()}`;
 }
@@ -1087,7 +1111,7 @@ function mCliente(){return`${mh('Novo Cliente')}
   <div class="fg"><label class="fl">WhatsApp</label><input class="fi" id="ct" placeholder="41999990000" type="tel"></div>
   <div class="ir"><div class="fg"><label class="fl">Placa</label><input class="fi" id="cp" placeholder="ABC-1234"></div><div class="fg"><label class="fl">Modelo e ano</label><input class="fi" id="cm" placeholder="Gol 2018"></div></div>
   <div class="ir"><div class="fg"><label class="fl">Cor</label><input class="fi" id="cc" placeholder="Branco"></div><div class="fg"><label class="fl">KM atual</label><input class="fi" id="ck" type="number" placeholder="0"></div></div>
-  <button class="btn btn-g" onclick="saveCliente()">Salvar cliente</button>`;}
+  <button class="btn btn-g" onclick="saveClienteDB()">Salvar cliente</button>`;}
 
 function mOrc(){
   const sv=F.sv||[];
@@ -1101,7 +1125,7 @@ function mOrc(){
     <button class="btn btn-s" style="margin-top:10px;font-size:13px" onclick="addSvOrc()">＋ Adicionar</button>
   </div>
   ${sv.length>0?`<div style="text-align:right;font-weight:800;color:var(--or);margin-bottom:12px;font-family:var(--fd);font-size:1.2rem">Total: R$ ${sv.reduce((a,s)=>a+s.qtd*s.preco,0)}</div>`:''}
-  <button class="btn btn-g" onclick="saveOrc()">Salvar orçamento</button>`;}
+  <button class="btn btn-g" onclick="saveOrcDB()">Salvar orçamento</button>`;}
 
 function mOS(){return`${mh('Nova OS')}
   <div class="fg"><label class="fl">Cliente</label><select class="fs" id="osc"><option value="">Selecionar...</option>${S.clientes.map(c=>`<option value="${c.id}">${c.nome} · ${c.placa}</option>`).join('')}</select></div>
@@ -1109,13 +1133,13 @@ function mOS(){return`${mh('Nova OS')}
   <div class="fg"><label class="fl">Mecânico</label><select class="fs" id="osm"><option value="">Selecionar...</option>${S.mecanicos.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('')}</select></div>
   <div class="ir"><div class="fg"><label class="fl">Data</label><input class="fi" id="osd" type="date"></div><div class="fg"><label class="fl">KM entrada</label><input class="fi" id="oski" type="number" placeholder="0"></div></div>
   <div class="fg"><label class="fl">Observações</label><input class="fi" id="oso2" placeholder="Descreva o problema..."></div>
-  <button class="btn btn-g" onclick="saveOS()">Criar OS</button>`;}
+  <button class="btn btn-g" onclick="saveOSDB()">Criar OS</button>`;}
 
 function mAgend(){return`${mh('Novo Agendamento')}
   <div class="fg"><label class="fl">Cliente</label><select class="fs" id="ac"><option value="">Selecionar...</option>${S.clientes.map(c=>`<option value="${c.id}">${c.nome} · ${c.placa}</option>`).join('')}</select></div>
   <div class="ir"><div class="fg"><label class="fl">Data</label><input class="fi" id="ad" type="date"></div><div class="fg"><label class="fl">Hora</label><input class="fi" id="ah" type="time"></div></div>
   <div class="fg"><label class="fl">Serviço</label><input class="fi" id="as2" placeholder="Ex: Revisão geral"></div>
-  <button class="btn btn-g" onclick="saveAgend()">Salvar agendamento</button>`;}
+  <button class="btn btn-g" onclick="saveAgendDB()">Salvar agendamento</button>`;}
 
 function mEstoque(){return`${mh('Novo Item de Estoque')}
   <div class="fg"><label class="fl">Nome do item</label><input class="fi" id="en" placeholder="Ex: Filtro de óleo"></div>
@@ -1135,7 +1159,7 @@ function mMec(){return`${mh('Novo Mecânico')}
   <div class="fg"><label class="fl">Nome</label><input class="fi" id="mn" placeholder="Nome do mecânico"></div>
   <div class="fg"><label class="fl">Cargo</label><input class="fi" id="mc" placeholder="Ex: Mecânico"></div>
   <div class="fg"><label class="fl">Telefone</label><input class="fi" id="mt" placeholder="41999990000" type="tel"></div>
-  <button class="btn btn-g" onclick="saveMec()">Salvar mecânico</button>`;}
+  <button class="btn btn-g" onclick="saveMecDB()">Salvar mecânico</button>`;}
 
 function mConfig(){return`${mh('Dados da Oficina')}
   <div class="fg"><label class="fl">Nome da oficina</label><input class="fi" id="on" value="${S.oficina.nome}"></div>
@@ -1291,6 +1315,260 @@ document.addEventListener('click',function(){
 });
 
 r();
+
+// ── DB HELPERS ────────────────────────────────────────────
+function uid(){ return S.user?.id || null; }
+
+async function loadAll(){
+  try {
+    const [cli, mec, orc, os, ag, fin, est] = await Promise.all([
+      _sb.from('clientes').select('*').order('created_at', {ascending:false}),
+      _sb.from('usuarios').select('*').eq('cargo', 'mecanico').order('nome'),
+      _sb.from('orcamentos').select('*').order('created_at', {ascending:false}),
+      _sb.from('ordens_servico').select('*').order('created_at', {ascending:false}),
+      _sb.from('ordens_servico').select('*').not('data_agendamento','is',null).order('data_agendamento'),
+      _sb.from('financeiro').select('*').order('data', {ascending:false}),
+      _sb.from('veiculos').select('*'),
+    ]);
+    if(cli.data   && cli.data.length)   S.clientes     = cli.data.map(mapCliente);
+    if(mec.data   && mec.data.length)   S.mecanicos    = mec.data.map(mapMec);
+    if(orc.data   && orc.data.length)   S.orcamentos   = orc.data.map(mapOrc);
+    if(os.data    && os.data.length)    S.os           = os.data.map(mapOS);
+    if(ag.data    && ag.data.length)    S.agendamentos = ag.data.map(mapAgend);
+    if(fin.data   && fin.data.length)   S.financeiro   = fin.data.map(mapFin);
+  } catch(e){ console.warn('loadAll error:', e); }
+}
+
+// ── MAPPERS (DB → app) ────────────────────────────────────
+function mapCliente(d){ return { id:d.id, nome:d.nome||'', tel:d.telefone||'', placa:d.placa||'', modelo:d.veiculo||'', cor:d.cor||'', km:d.km||0 }; }
+function mapMec(d){ return { id:d.id, nome:d.nome||'', cargo:d.cargo||'Mecânico', tel:d.telefone||'', ativo:d.ativo!==false }; }
+function mapOrc(d){
+  let svs = [];
+  try { svs = typeof d.itens === 'string' ? JSON.parse(d.itens) : (d.itens||[]); } catch(e){}
+  return { id:d.id, clienteId:d.cliente_id, servicos:svs, status:d.status||'pendente', data:fmtDate(d.created_at), pago:d.pago||false };
+}
+function mapOS(d){
+  let ck = [];
+  try { ck = typeof d.checklist === 'string' ? JSON.parse(d.checklist) : (d.checklist||[]); } catch(e){}
+  return { id:d.id, clienteId:d.cliente_id, orcId:d.orcamento_id, mecanico:d.mecanico_id, status:d.status||'em_andamento', inicio:fmtDate(d.created_at), fim:d.concluido_em?fmtDate(d.concluido_em):null, obs:d.observacoes||'', km:d.km_entrada||0, fotos:d.fotos||['','','',''], checklist:ck.length?ck:[false,false,false,false,false], assinatura:d.assinatura||false };
+}
+function mapAgend(d){ return { id:d.id, clienteId:d.cliente_id, data:fmtDate(d.data_agendamento), hora:d.hora_agendamento||'', servico:d.descricao||'', status:d.status||'pendente' }; }
+function mapFin(d){ return { id:d.id, tipo:d.tipo||'receita', desc:d.descricao||'', valor:parseFloat(d.valor)||0, data:fmtDate(d.data||d.created_at), pago:d.pago||false }; }
+function fmtDate(s){ if(!s)return hoje(); try{ const d=new Date(s); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }catch(e){return hoje();} }
+
+// ── CRUD WRAPPERS ──────────────────────────────────────────
+async function dbSaveCliente(data){
+  const row = { nome:data.nome, telefone:data.tel, placa:data.placa, veiculo:data.modelo, cor:data.cor, km:data.km };
+  const { data:d, error } = await _sb.from('clientes').insert(row).select().single();
+  if(error){ console.error(error); return null; }
+  return mapCliente(d);
+}
+async function dbSaveOrc(clienteId, servicos){
+  const row = { cliente_id:clienteId, itens:JSON.stringify(servicos), status:'pendente', pago:false };
+  const { data:d, error } = await _sb.from('orcamentos').insert(row).select().single();
+  if(error){ console.error(error); return null; }
+  return mapOrc(d);
+}
+async function dbSaveOS(data){
+  const row = { cliente_id:data.clienteId, orcamento_id:data.orcId||null, mecanico_id:data.mecanico||null, status:'em_andamento', observacoes:data.obs, km_entrada:data.km, checklist:JSON.stringify([false,false,false,false,false]), fotos:['','','',''], assinatura:false };
+  const { data:d, error } = await _sb.from('ordens_servico').insert(row).select().single();
+  if(error){ console.error(error); return null; }
+  return mapOS(d);
+}
+async function dbSaveAgend(data){
+  const row = { cliente_id:data.clienteId, data_agendamento:data.data, hora_agendamento:data.hora, descricao:data.servico, status:'pendente' };
+  const { data:d, error } = await _sb.from('ordens_servico').insert(row).select().single();
+  if(error){ console.error(error); return null; }
+  return null;
+}
+async function dbSaveFin(data){
+  const row = { tipo:data.tipo, descricao:data.desc, valor:data.valor, data:data.data, pago:data.pago };
+  const { error } = await _sb.from('financeiro').insert(row);
+  if(error) console.error(error);
+}
+async function dbSaveEst(data){
+  // Salva como veiculo ou item de estoque — mapeie conforme seu schema
+  console.log('Estoque salvo localmente (adicione tabela estoque no Supabase):', data);
+}
+async function dbSetOrcStatus(id, status){
+  await _sb.from('orcamentos').update({status}).eq('id', id);
+}
+async function dbSetOrcPago(id){
+  await _sb.from('orcamentos').update({pago:true}).eq('id', id);
+}
+async function dbConcluirOS(id){
+  await _sb.from('ordens_servico').update({status:'concluida', concluido_em:new Date().toISOString()}).eq('id', id);
+}
+async function dbUpdateChecklist(id, ck){
+  await _sb.from('ordens_servico').update({checklist:JSON.stringify(ck)}).eq('id', id);
+}
+async function dbUpdateFotos(id, fotos){
+  await _sb.from('ordens_servico').update({fotos}).eq('id', id);
+}
+async function dbSaveSig(id){
+  await _sb.from('ordens_servico').update({assinatura:true}).eq('id', id);
+}
+async function dbSetAgendStatus(id, status){
+  await _sb.from('ordens_servico').update({status}).eq('id', id);
+}
+async function dbDelete(table, id){
+  await _sb.from(table).delete().eq('id', id);
+}
+async function dbSaveMec(data){
+  const row = { nome:data.nome, cargo:data.cargo, telefone:data.tel, ativo:true };
+  const { error } = await _sb.from('usuarios').insert(row);
+  if(error) console.error(error);
+}
+
+// ── ASYNC ACTION WRAPPERS ──────────────────────────────────
+async function saveClienteDB(){
+  const nome=gv('cn'),tel=gv('ct'),placa=gv('cp')?.toUpperCase(),modelo=gv('cm'),cor=gv('cc'),km=parseInt(g('ck')?.value)||0;
+  if(!nome||!placa){alert('Nome e placa são obrigatórios!');return;}
+  const novo = await dbSaveCliente({nome,tel,placa,modelo,cor,km});
+  if(novo) S.clientes.unshift(novo); else S.clientes.unshift({id:S.nextId++,nome,tel,placa,modelo,cor,km});
+  closeM();
+}
+async function saveQuickDB(){
+  const cId=parseInt(gv('qc'));
+  if(!cId||!F.sv?.length){alert('Selecione cliente e adicione itens!');return;}
+  const novo = await dbSaveOrc(cId, F.sv);
+  if(novo) S.orcamentos.unshift(novo); else S.orcamentos.unshift({id:S.nextId++,clienteId:cId,servicos:F.sv,status:'pendente',data:hoje(),pago:false});
+  closeM();
+}
+async function saveOrcDB(){
+  const cId=parseInt(gv('oc'));
+  if(!cId||!F.sv?.length){alert('Selecione cliente e adicione itens!');return;}
+  const novo = await dbSaveOrc(cId, F.sv);
+  if(novo) S.orcamentos.unshift(novo); else S.orcamentos.unshift({id:S.nextId++,clienteId:cId,servicos:F.sv,status:'pendente',data:hoje(),pago:false});
+  closeM();
+}
+async function saveOSDB(){
+  const cId=parseInt(gv('osc')),orcId=parseInt(gv('oso'))||null,mecanico=parseInt(gv('osm'))||null,km=parseInt(g('oski')?.value)||0,obs=gv('oso2');
+  if(!cId){alert('Selecione um cliente!');return;}
+  const d=g('osd')?.value; const data=d?d.split('-').reverse().join('/'):hoje();
+  const novo = await dbSaveOS({clienteId:cId,orcId,mecanico,km,obs});
+  if(novo) S.os.unshift(novo); else S.os.unshift({id:S.nextId++,clienteId:cId,orcId,mecanico,status:'em_andamento',inicio:data,fim:null,obs,km,fotos:['','','',''],checklist:[false,false,false,false,false],assinatura:false});
+  closeM();
+}
+async function saveAgendDB(){
+  const cId=parseInt(gv('ac')),sv=gv('as2');
+  if(!cId||!sv){alert('Preencha todos os campos!');return;}
+  const d=g('ad')?.value,h=g('ah')?.value;
+  await dbSaveAgend({clienteId:cId,data:d?d.split('-').reverse().join('/'):hoje(),hora:h||'',servico:sv});
+  S.agendamentos.push({id:S.nextId++,clienteId:cId,data:d?d.split('-').reverse().join('/'):hoje(),hora:h||'',servico:sv,status:'pendente'});
+  closeM();
+}
+async function saveEstDB(){
+  const nome=gv('en'),qtd=parseInt(g('eq')?.value)||0,minimo=parseInt(g('em')?.value)||0,preco=parseFloat(g('ep')?.value)||0,custo=parseFloat(g('ecst')?.value)||0,unidade=gv('eu')||'un';
+  if(!nome){alert('Informe o nome!');return;}
+  await dbSaveEst({nome,qtd,minimo,preco,custo,unidade});
+  S.estoque.push({id:S.nextId++,nome,qtd,minimo,preco,custo,unidade});
+  closeM();
+}
+async function saveTransDB(){
+  const tipo=gv('ft'),desc=gv('fd'),valor=parseFloat(g('fv')?.value)||0,pago=gv('fp')==='true';
+  if(!desc||!valor){alert('Preencha todos os campos!');return;}
+  const d=g('fdt')?.value; const data=d?d.split('-').reverse().join('/'):hoje();
+  await dbSaveFin({tipo,desc,valor,data,pago});
+  S.financeiro.unshift({id:S.nextId++,tipo,desc,valor,data,pago});
+  closeM();
+}
+async function saveMecDB(){
+  const nome=gv('mn'),cargo=gv('mc'),tel=gv('mt');
+  if(!nome){alert('Informe o nome!');return;}
+  await dbSaveMec({nome,cargo:cargo||'Mecânico',tel:tel||''});
+  S.mecanicos.push({id:S.nextId++,nome,cargo:cargo||'Mecânico',tel:tel||'',ativo:true});
+  closeM();
+}
+async function setOrcStDB(id,st){
+  await dbSetOrcStatus(id,st);
+  setOrcSt(id,st);
+}
+async function markPagoDB(id){
+  await dbSetOrcPago(id);
+  markPago(id);
+}
+async function concOSDB(id){
+  await dbConcluirOS(id);
+  const os=S.os.find(x=>x.id===id);
+  if(!os)return;
+  os.status='concluida';os.fim=hoje();
+  if(os.orcId&&can('baixa')){
+    const orc=S.orcamentos.find(x=>x.id===os.orcId);
+    if(orc){const al=[];orc.servicos.forEach(s=>{if(s.estoqueId){const e=S.estoque.find(x=>x.id===s.estoqueId);if(e){e.qtd=Math.max(0,e.qtd-s.qtd);if(e.qtd<=e.minimo)al.push('• '+e.nome+': '+e.qtd+' '+e.unidade+' restantes');}}});if(al.length)setTimeout(()=>alert('✅ OS concluída!\n\n⚠️ Estoque crítico:\n'+al.join('\n')),100);}
+  }
+  r();
+}
+async function tgCkDB(osId,i){
+  const os=S.os.find(x=>x.id===osId);
+  if(!os?.checklist)return;
+  os.checklist[i]=!os.checklist[i];
+  await dbUpdateChecklist(osId, os.checklist);
+  r();
+}
+async function addFtDB(osId,i){
+  const os=S.os.find(x=>x.id===osId);
+  if(!os)return;
+  if(!os.fotos)os.fotos=['','','',''];
+  os.fotos[i]=os.fotos[i]?'':'ok';
+  await dbUpdateFotos(osId, os.fotos);
+  r();
+}
+async function saveSigDB(osId){
+  const cv=document.getElementById('sig-'+osId);
+  if(!cv)return;
+  const tmp=document.createElement('canvas');tmp.width=cv.width;tmp.height=cv.height;
+  if(cv.toDataURL()===tmp.toDataURL()){alert('Por favor, assine antes de confirmar.');return;}
+  await dbSaveSig(osId);
+  const os=S.os.find(x=>x.id===osId);
+  if(os)os.assinatura=true;
+  r();
+}
+async function setAgStDB(id,st){
+  await dbSetAgendStatus(id,st);
+  setAgSt(id,st);
+}
+async function delCDB(id){
+  if(!confirm('Excluir cliente?'))return;
+  await dbDelete('clientes',id);
+  S.clientes=S.clientes.filter(x=>x.id!==id);
+  S.detail=null;r();
+}
+async function delODB(id){
+  if(!confirm('Excluir orçamento?'))return;
+  await dbDelete('orcamentos',id);
+  S.orcamentos=S.orcamentos.filter(x=>x.id!==id);
+  S.detail=null;r();
+}
+async function delOSDB(id){
+  if(!confirm('Excluir OS?'))return;
+  await dbDelete('ordens_servico',id);
+  S.os=S.os.filter(x=>x.id!==id);
+  S.detail=null;r();
+}
+async function delEDB(id){
+  if(!confirm('Remover item?'))return;
+  S.estoque=S.estoque.filter(x=>x.id!==id);
+  S.detail=null;r();
+}
+async function delMDB(id){
+  if(!confirm('Excluir mecânico?'))return;
+  await dbDelete('usuarios',id);
+  S.mecanicos=S.mecanicos.filter(x=>x.id!==id);
+  S.detail=null;r();
+}
+
+// Check existing session on load
+(async function(){
+  const { data: { session } } = await _sb.auth.getSession();
+  if(session?.user){
+    S.user = session.user;
+    S.logged = true;
+    await loadAll();
+    r();
+  }
+})();
+
 </script>
 </body>
 </html>
