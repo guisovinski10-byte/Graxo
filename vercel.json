@@ -1,8 +1,4 @@
 {
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "builds": [{"src": "graxo-v5.html", "use": "@vercel/static"}],
+  "routes": [{"src": "/(.*)", "dest": "/graxo-v5.html"}]
 }
