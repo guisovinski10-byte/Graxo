@@ -299,15 +299,12 @@ html,body{height:100%;background:var(--bg);color:var(--wh);font-family:var(--fb)
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .pulse{animation:pulse 2s infinite}
 </style>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script> </head>
+</head>
 <body>
 <div class="shell" id="app"></div>
 <script>
 // ── ICONS ──────────────────────────────────────────────────────────────
 const I={
-  const SUPABASE_URL = 'https://zubifpgtrnjfufhnyhyd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzZxbhBhmFzZSIsInJlZiI6Inp1YmlmcGd0cm5qZnVmaG55aHkifQ.YjP1lY';
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   home:`<svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>`,
   users:`<svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
   wrench:`<svg class="ni-ico" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>`,
@@ -1298,18 +1295,7 @@ document.addEventListener('click',function(){
   },100);
 });
 
-async function checkSession() {
-  try {
-    const { data: { session } } = await _sb.auth.getSession();
-    if (session) {
-      S.logged = true;
-      S.user = session.user;
-      S.role = 'admin';
-      S.email = session.user.email;
-    }
-  } catch(e) {}
-}
-checkSession().then(() => r());
+r();
 </script>
 
   <!-- ═══ SUPABASE SDK ═══ -->
@@ -1330,30 +1316,27 @@ checkSession().then(() => r());
 
     // ── AUTH HELPERS ───────────────────────────────────────────────────
     async function doLogin() {
-  const emailEl = document.querySelector('input[type="email"]');
-  const passEl = document.querySelector('input[type="password"]');
-  if (!emailEl || !passEl) return;
-  const email = emailEl.value.trim();
-  const pass = passEl.value;
-  if (!email || !pass) { alert('Preencha e-mail e senha!'); return; }
-  const btn = document.querySelector('[onclick="doLogin()"]');
-  ot = btn.textContent;
-  btn.textContent = 'Entrando...';
-  btn.disabled = true;
-  const { data, error } = await _sb.auth.signInWithPassword({ email, password: pass });
-  btn.textContent = ot;
-  btn.disabled = false;
-  if (error) {
-    alert(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : 'Erro: ' + error.message);
-    return;
-  }
-  S.logged = true;
-  S.user = data.user;
-  S.role = 'admin';
-  S.email = data.user.email;
-  localStorage.setItem('graxo_session', 'true');
-  r();
-}
+      const emailEl = document.querySelector('input[type="email"]');
+      const passEl  = document.querySelector('input[type="password"]');
+      if (!emailEl || !passEl) return;
+      const email = emailEl.value.trim();
+      const pass  = passEl.value.trim();
+      if (!email || !pass) { alert('Preencha e-mail e senha!'); return; }
+
+      const btn = document.querySelector('.login-btn, button[onclick="doLogin()"]');
+      if (btn) btn.textContent = 'Entrando...';
+
+      const { data, error } = await _sb.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        alert('Erro ao entrar: ' + (error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message));
+        if (btn) btn.textContent = 'Entrar no Graxo →';
+        return;
+      }
+      S.user = data.user;
+      S.logged = true;
+      await loadAllData();
+      r();
+    }
 
     async function doLoginGoogle() {
       const { error } = await _sb.auth.signInWithOAuth({
