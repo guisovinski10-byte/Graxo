@@ -376,9 +376,10 @@ function showLoading(){
   if (app) app.innerHTML = '<div class="loading-overlay"><div class="loading-spin"></div><div class="loading-txt">Carregando...</div></div>';
 }
 function build(){
-  if(!S.logged)return bLogin();
-  if(S.detail)return bDetail();
-  return`<div class="scr ani">${bScreen()}</div>${bNav()}${bFab()}${bModal()}`;
+if(S.signup)return bSignUp();
+if(!S.logged)return bLogin();
+if(S.detail)return bDetail();
+return`<div class="scr ani">${bScreen()}</div>${bNav()}${bFab()}${bModal()}`;
 }
 function can(feat){
   const m={aprovacao:['pro','turbo'],pdf:['pro','turbo'],estoque_basico:['pro','turbo'],baixa_auto:['turbo'],multi_mec:['turbo'],crm_placa:['turbo'],relatorios:['pro','turbo'],assinatura:['pro','turbo']};
@@ -387,6 +388,9 @@ function can(feat){
 
 // ── LOGIN ──────────────────────────────────────────────────────────────
 function bLogin(){
+function bSignUp(){
+return`<div class="login-sc">   <div class="login-glow1"></div><div class="login-glow2"></div><div class="login-grid"></div>   <div class="login-body ani">     <div class="login-top">       <div class="login-ico"><span>G</span><div class="login-ico-pip">▶</div></div>       <div class="login-brand">Gr<span>axo</span></div>       <div class="login-sub">Crie sua conta e teste grátis por 14 dias</div>       <div class="login-proof">         <div class="login-avs">${['#FF6B2B','#3B9EFF','#00E87A','#9D7FFF'].map((c,i)=>`<div class="login-av" style="background:${c};color:#fff">${'ZRCM'[i]}</div>`).join('')}</div>         <span style="font-size:12px;color:var(--t2);margin-left:12px">+200 oficinas usando</span>       </div>     </div>     <div class="login-form">       <div class="login-field">         <label class="login-lbl">Nome da oficina</label>         <div class="login-inp-w"><span class="login-inp-ico">🏪</span><input class="login-inp" id="su-name" type="text" placeholder="Minha Oficina"></div>       </div>       <div class="login-field">         <label class="login-lbl">Seu e-mail</label>         <div class="login-inp-w"><span class="login-inp-ico">✉️</span><input class="login-inp" id="su-email" type="email" placeholder="oficina@graxo.app"></div>       </div>       <div class="login-field">         <label class="login-lbl">Criar senha</label>         <div class="login-inp-w"><span class="login-inp-ico">🔒</span><input class="login-inp" id="su-pass" type="password" placeholder="Mínimo 6 caracteres"></div>       </div>       <button class="login-btn" onclick="doSignUp()">Criar conta grátis →</button>       <div style="text-align:center;margin-top:8px">         <span style="font-size:11px;color:var(--t3)">Ao criar conta, você aceita nossos </span>         <span style="font-size:11px;color:var(--or);cursor:pointer">Termos de uso</span>       </div>     </div>     <div class="login-ft">Já tem conta? <a href="#" onclick="closeSignUp()" style="color:var(--or);text-decoration:none;font-weight:600">Fazer login →</a></div>   </div></div>`;
+}
   return`<div class="login-sc">
   <div class="login-glow1"></div><div class="login-glow2"></div><div class="login-grid"></div>
   <div class="login-body ani">
@@ -414,7 +418,7 @@ function bLogin(){
       <div class="login-div">ou entre com</div>
       <div class="login-soc">
         <button class="login-soc-btn"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</button>
-        <button class="login-soc-btn">💬 WhatsApp</button>
+    
       </div>
     </div>
     <div class="login-ft">Não tem conta? <a href="#">Teste grátis — 14 dias →</a></div>
@@ -1301,6 +1305,18 @@ r();
   <!-- ═══ SUPABASE SDK ═══ -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
+    async function checkSession() {
+  try {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) {
+      S.logged = true;
+      S.user = session.user;
+      S.role = 'admin';
+      S.email = session.user.email;
+    }
+  } catch(e) {}
+}
+checkSession().then(() => r());
     // ── SUPABASE CLIENT ────────────────────────────────────────────────
     const _sb = supabase.createClient(
       'https://zubifpgtrnjfufhnyhyd.supabase.co',
@@ -1370,14 +1386,30 @@ r();
       else alert('✅ E-mail de redefinição enviado! Verifique sua caixa de entrada.');
     }
 
-    async function doSignUp() {
-      const email = prompt('Seu e-mail:');
-      if (!email) return;
-      const pass  = prompt('Crie uma senha (mínimo 6 caracteres):');
-      if (!pass || pass.length < 6) { alert('Senha deve ter pelo menos 6 caracteres.'); return; }
-      const { error } = await _sb.auth.signUp({ email, password: pass });
-      if (error) alert('Erro: ' + error.message);
-      else alert('✅ Conta criada! Verifique seu e-mail para confirmar.');
+  
+
+async function doSignUp() {
+  const nameEl = document.getElementById('su-name');
+  const emailEl = document.getElementById('su-email');
+  const passEl = document.getElementById('su-pass');
+  if (!nameEl || !emailEl || !passEl) return;
+  const name = nameEl.value.trim();
+  const email = emailEl.value.trim();
+  const pass = passEl.value;
+  if (!name || !email || !pass) { alert('Preencha todos os campos!'); return; }
+  if (pass.length < 6) { alert('A senha deve ter no mínimo 6 caracteres!'); return; }
+  const btn = document.querySelector('[onclick="doSignUp()"]');
+  if (btn) { btn.textContent = 'Criando...'; btn.disabled = true; }
+  const { data, error } = await _sb.auth.signUp({
+    email, password: pass,
+    options: { data: { oficina_nome: name } }
+  });
+  if (btn) { btn.textContent = 'Criar conta grátis →'; btn.disabled = false; }
+  if (error) { alert('Erro: ' + error.message); return; }
+  alert('✅ Conta criada! Verifique seu e-mail para confirmar o cadastro.');
+  S.signup = false;
+  r();
+}
     }
 
     // ── DATA LOADERS ───────────────────────────────────────────────────
