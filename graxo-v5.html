@@ -377,7 +377,7 @@ function showLoading(){
 }
 function build(){
 if(S.signup)return bSignUp();
-if(!S.logged)return bLogin();
+if(S.logged)return bLogin();
 if(S.detail)return bDetail();
 return`<div class="scr ani">${bScreen()}</div>${bNav()}${bFab()}${bModal()}`;
 }
@@ -1385,8 +1385,8 @@ checkSession().then(() => r());
       if (error) alert('Erro: ' + error.message);
       else alert('✅ E-mail de redefinição enviado! Verifique sua caixa de entrada.');
     }
-
-  
+function openSignUp(){S.signup=true;r();}
+function closeSignUp(){S.signup=false;r();}
 
 async function doSignUp() {
   const nameEl = document.getElementById('su-name');
@@ -1410,7 +1410,6 @@ async function doSignUp() {
   S.signup = false;
   r();
 }
-    }
 
     // ── DATA LOADERS ───────────────────────────────────────────────────
     async function loadAllData() {
