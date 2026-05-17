@@ -421,7 +421,7 @@ return`<div class="login-sc">   <div class="login-glow1"></div><div class="login
     
       </div>
     </div>
-    <div class="login-ft">Não tem conta? <a href="#">Teste grátis — 14 dias →</a></div>
+    <div class="login-ft">Não tem conta? <a href="#">Teste grátis — 14 dias →</a></div><div class="login-ft">Não tem conta? <a href="#" onclick="openSignUp()" style="color:var(--or);text-decoration:none;font-weight:600">Teste grátis — 14 dias →</a></div>
   </div></div>`;
 }
 // doLogin is handled by Supabase block above
@@ -1316,20 +1316,19 @@ r();
     }
   } catch(e) {}
 }
+// ═══ SUPABASE CLIENT ═══
+const _sb = supabase.createClient(
+'https://zubifpgtrnjfufhnyhyd.supabase.co',
+'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1YmlmcGd0cm5qZnVmaG55aHlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTA2NzQsImV4cCI6MjA5NDI2NjY3NH0.pULe1mGnY0P0CvixRoeMr2eErYOPlaCRAZkPNiN36Uo',
+{
+auth: {
+autoRefreshToken: true,
+persistSession: true,
+detectSessionInUrl: true
+}
+}
+);
 checkSession().then(() => r());
-    // ── SUPABASE CLIENT ────────────────────────────────────────────────
-    const _sb = supabase.createClient(
-      'https://zubifpgtrnjfufhnyhyd.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1YmlmcGd0cm5qZnVmaG55aHlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTA2NzQsImV4cCI6MjA5NDI2NjY3NH0.pULe1mGnY0P0CvixRoeMr2eErYOPlaCRAZkPNiN36Uo',
-      {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true
-        }
-      }
-    );
-
     // ── AUTH HELPERS ───────────────────────────────────────────────────
     async function doLogin() {
       const emailEl = document.querySelector('input[type="email"]');
