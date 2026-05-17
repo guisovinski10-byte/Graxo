@@ -377,7 +377,7 @@ function showLoading(){
 }
 function build(){
 if(S.signup)return bSignUp();
-if(S.logged)return bLogin();
+if(!S.logged)return bLogin();
 if(S.detail)return bDetail();
 return`<div class="scr ani">${bScreen()}</div>${bNav()}${bFab()}${bModal()}`;
 }
